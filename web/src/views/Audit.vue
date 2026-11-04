@@ -15,7 +15,7 @@ watch(target, load, { immediate: true });
   <section class="panel">
     <div class="panel-h"><div class="subtabs"><button v-for="(l, k) in TARGETS" :key="k" :aria-pressed="target === k" @click="target = k">{{ l }}</button></div></div>
     <div class="tbl"><table>
-      <thead><tr><th>时间（UTC）</th><th>操作人</th><th>对象</th><th>操作</th><th>详情</th></tr></thead>
+      <thead><tr><th>时间</th><th>操作人</th><th>对象</th><th>操作</th><th>详情</th></tr></thead>
       <tbody>
         <tr v-for="a in rows" :key="a.id">
           <td class="num">{{ dtm(a.created_at) }}</td><td>{{ a.user_name || '—' }}</td><td>{{ TARGETS[a.target] || a.target }} <span class="note mono">#{{ a.target_id }}</span></td><td>{{ a.action }}</td>

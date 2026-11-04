@@ -2,18 +2,16 @@ import Fastify from 'fastify';
 import cookie from '@fastify/cookie';
 import multipart from '@fastify/multipart';
 import fastifyStatic from '@fastify/static';
-import bcrypt from 'bcryptjs';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { openDb, audit, getSetting, setSetting, ROLES } from './db.js';
+import { setupAuth, hashPassword, passwordProblem } from './auth.js';
 import { today } from './money.js';
 import masterRoutes from './routes/master.js';
 import statementRoutes from './routes/statements.js';
 import invoiceRoutes from './routes/invoices.js';
 import reportRoutes from './routes/reports.js';
-
-const SESSION_DAYS = 30;
 
 export class HttpError extends Error {
   constructor(status, message) { super(message); this.statusCode = status; }
@@ -22,7 +20,7 @@ export const bad = (msg) => new HttpError(400, msg);
 export const forbidden = (msg = '没有权限') => new HttpError(403, msg);
 export const notFound = (msg = '找不到这条记录') => new HttpError(404, msg);
 
-export function hashPassword(pw) { return bcrypt.hashSync(pw, 10); }
+export { hashPassword };
 
 /**
  * Build the Fastify app. Options:
@@ -30,7 +28,9 @@ export function hashPassword(pw) { return bcrypt.hashSync(pw, 10); }
  *  dbFile      override database path (':memory:' in tests)
  *  webDir      built frontend to serve (optional)
  *  adminUser / adminPassword   first administrator, created only when no user exists
- *  cookieSecure  set Secure on the session cookie (behind HTTPS)
+ *  cookieSecure  set Secure on the session cookie and send HSTS (behind HTTPS)
+ *  trustProxy    take the client IP from X-Forwarded-For (only when behind Nginx/Caddy)
+ *  sessionDays / idleHours   longest session, and how long without activity before signing out (default 7 days / 12 hours)
  */
 export async function buildApp(opts = {}) {
   const dataDir = path.resolve(opts.dataDir || './data');
@@ -45,11 +45,12 @@ export async function buildApp(opts = {}) {
   if (db.prepare('SELECT COUNT(*) AS n FROM users').get().n === 0) {
     const username = opts.adminUser || 'admin';
     initialPassword = opts.adminPassword || crypto.randomBytes(9).toString('base64url');
-    db.prepare("INSERT INTO users(username, name, password_hash, role, must_change_password) VALUES (?, '管理员', ?, '管理员', ?)")
-      .run(username, hashPassword(initialPassword), opts.adminPassword ? 0 : 1);
+    // the first password always has to be changed at first login, even when it came from the environment
+    db.prepare("INSERT INTO users(username, name, password_hash, role, must_change_password) VALUES (?, '管理员', ?, '管理员', 1)")
+      .run(username, hashPassword(initialPassword));
   }
 
-  const app = Fastify({ logger: opts.logger ?? false, bodyLimit: 2 * 1024 * 1024 });
+  const app = Fastify({ logger: opts.logger ?? false, bodyLimit: 2 * 1024 * 1024, trustProxy: !!opts.trustProxy });
   app.decorate('db', db);
   app.decorate('uploadDir', uploadDir);
   app.decorate('initialPassword', initialPassword);
@@ -63,64 +64,17 @@ export async function buildApp(opts = {}) {
     reply.status(status).send({ error: message });
   });
 
-  // ---- sessions ----
-  const userBySession = db.prepare(`SELECT u.id, u.username, u.name, u.role, u.active, u.must_change_password
-    FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.token = ? AND s.expires_at > datetime('now')`);
-  app.decorateRequest('user', null);
-  app.addHook('onRequest', async (req) => {
-    const token = req.cookies.sid;
-    if (token) {
-      const u = userBySession.get(token);
-      if (u && u.active) req.user = u;
-    }
+  const { startSession } = setupAuth(app, db, {
+    cookieSecure: !!opts.cookieSecure,
+    sessionDays: Number(opts.sessionDays) || 7,
+    idleHours: Number(opts.idleHours) || 12,
   });
-  app.decorate('auth', (...roles) => async (req) => {
-    if (!req.user) throw new HttpError(401, '请先登录');
-    if (roles.length && !roles.includes(req.user.role)) throw forbidden();
-  });
-
-  const failures = new Map(); // key -> {n, until}
-  app.post('/api/login', async (req, reply) => {
-    const { username, password } = req.body || {};
-    const key = `${req.ip}|${String(username || '').toLowerCase()}`;
-    const f = failures.get(key);
-    if (f && f.n >= 8 && f.until > Date.now()) throw new HttpError(429, '尝试次数太多，请 15 分钟后再试');
-    const u = db.prepare('SELECT * FROM users WHERE username = ?').get(String(username || '').trim());
-    if (!u || !u.active || !bcrypt.compareSync(String(password || ''), u.password_hash)) {
-      failures.set(key, { n: (f && f.until > Date.now() ? f.n : 0) + 1, until: Date.now() + 15 * 60e3 });
-      throw new HttpError(401, '用户名或密码不对');
-    }
-    failures.delete(key);
-    const token = crypto.randomBytes(32).toString('base64url');
-    db.prepare(`INSERT INTO sessions(token, user_id, expires_at) VALUES (?, ?, datetime('now', '+${SESSION_DAYS} days'))`).run(token, u.id);
-    db.prepare("DELETE FROM sessions WHERE expires_at <= datetime('now')").run();
-    reply.setCookie('sid', token, { path: '/', httpOnly: true, sameSite: 'lax', secure: !!opts.cookieSecure, maxAge: SESSION_DAYS * 86400 });
-    audit(db, u.id, 'user', u.id, '登录');
-    return { ok: true };
-  });
-  app.post('/api/logout', async (req, reply) => {
-    if (req.cookies.sid) db.prepare('DELETE FROM sessions WHERE token = ?').run(req.cookies.sid);
-    reply.clearCookie('sid', { path: '/' });
-    return { ok: true };
-  });
-  app.get('/api/me', { preHandler: app.auth() }, async (req) => ({
-    user: req.user,
-    settings: { company_name: getSetting(db, 'company_name'), opening_date: getSetting(db, 'opening_date') },
-  }));
-  app.post('/api/me/password', { preHandler: app.auth() }, async (req) => {
-    const { old_password, new_password } = req.body || {};
-    const u = db.prepare('SELECT password_hash FROM users WHERE id = ?').get(req.user.id);
-    if (!bcrypt.compareSync(String(old_password || ''), u.password_hash)) throw bad('原密码不对');
-    if (String(new_password || '').length < 8) throw bad('新密码至少 8 位');
-    db.prepare('UPDATE users SET password_hash = ?, must_change_password = 0 WHERE id = ?').run(hashPassword(new_password), req.user.id);
-    db.prepare('DELETE FROM sessions WHERE user_id = ? AND token != ?').run(req.user.id, req.cookies.sid);
-    audit(db, req.user.id, 'user', req.user.id, '修改密码');
-    return { ok: true };
-  });
+  void startSession;
 
   // ---- users (管理员) ----
   app.get('/api/users', { preHandler: app.auth() }, async (req) => {
-    const all = db.prepare('SELECT id, username, name, role, active, created_at FROM users ORDER BY id').all();
+    const all = db.prepare(`SELECT id, username, name, role, active, created_at, last_login_at, last_login_ip, locked_until, must_change_password,
+      (SELECT COUNT(*) FROM sessions s WHERE s.user_id = users.id) AS sessions FROM users ORDER BY id`).all();
     // everyone may see names (to show owners); only admins see usernames and status
     return req.user.role === '管理员' ? all : all.filter((u) => u.active).map(({ id, name, role }) => ({ id, name, role }));
   });
@@ -129,8 +83,9 @@ export async function buildApp(opts = {}) {
     if (!/^[A-Za-z0-9_.-]{2,32}$/.test(username || '')) throw bad('用户名只能用字母、数字、下划线，2-32 位');
     if (!name) throw bad('请填写姓名');
     if (!ROLES.includes(role)) throw bad('角色不对');
-    if (String(password || '').length < 8) throw bad('初始密码至少 8 位');
-    if (db.prepare('SELECT 1 FROM users WHERE username = ?').get(username)) throw bad('用户名已被占用');
+    const problem = passwordProblem(password, username);
+    if (problem) throw bad('初始' + problem);
+    if (db.prepare('SELECT 1 FROM users WHERE username = ? COLLATE NOCASE').get(username)) throw bad('用户名已被占用');
     const r = db.prepare('INSERT INTO users(username, name, password_hash, role, must_change_password) VALUES (?,?,?,?,1)')
       .run(username, name, hashPassword(password), role);
     audit(db, req.user.id, 'user', r.lastInsertRowid, '新建用户', { username, name, role });
@@ -143,16 +98,27 @@ export async function buildApp(opts = {}) {
     const { name, role, active, password } = req.body || {};
     if (role !== undefined && !ROLES.includes(role)) throw bad('角色不对');
     if (id === req.user.id && (active === false || (role && role !== '管理员'))) throw bad('不能停用自己或取消自己的管理员身份');
+    if (password) {
+      const problem = passwordProblem(password, u.username);
+      if (problem) throw bad(problem);
+    }
     db.prepare('UPDATE users SET name = COALESCE(?, name), role = COALESCE(?, role), active = COALESCE(?, active) WHERE id = ?')
       .run(name ?? null, role ?? null, active === undefined ? null : (active ? 1 : 0), id);
     if (password) {
-      if (String(password).length < 8) throw bad('密码至少 8 位');
-      db.prepare('UPDATE users SET password_hash = ?, must_change_password = 1 WHERE id = ?').run(hashPassword(password), id);
+      db.prepare('UPDATE users SET password_hash = ?, must_change_password = 1, failed_count = 0, locked_until = NULL WHERE id = ?').run(hashPassword(password), id);
       db.prepare('DELETE FROM sessions WHERE user_id = ?').run(id);
     }
     if (active === false) db.prepare('DELETE FROM sessions WHERE user_id = ?').run(id);
     audit(db, req.user.id, 'user', id, '修改用户', { name, role, active, password_reset: !!password });
     return { ok: true };
+  });
+  app.post('/api/users/:id/logout', { preHandler: app.auth('管理员') }, async (req) => {
+    const id = Number(req.params.id);
+    if (!db.prepare('SELECT 1 FROM users WHERE id = ?').get(id)) throw notFound();
+    const r = db.prepare('DELETE FROM sessions WHERE user_id = ? AND token != ?').run(id, req.sessionToken || '');
+    db.prepare('UPDATE users SET failed_count = 0, locked_until = NULL WHERE id = ?').run(id);
+    audit(db, req.user.id, 'user', id, '强制下线并解锁', { count: r.changes });
+    return { ok: true, count: r.changes };
   });
 
   // ---- settings ----
