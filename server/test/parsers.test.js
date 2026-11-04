@@ -68,3 +68,58 @@ test('数电 PDF file end to end (pdf.js text extraction)', async () => {
   assert.equal(r.fields.total, 45200);
   assert.equal(r.fields.remark, '10月对账');
 });
+
+// Layouts copied from real 数电 PDFs (names and numbers replaced): vertical 备注 label, "开票人" footer,
+// discount lines with negative amounts, and spaces after "¥".
+test('real-world layout: e-commerce platform invoice with discount line', () => {
+  const text = [
+    '发票号码: 26117000001000000001',
+    '电子发票(普通发票) 开票日期: 2026年09月09日',
+    '购 销',
+    '买 名 称 : 测试（东莞）医疗技术有限公司 售 名 称 : 北京某某信息技术有限公司',
+    '方 方',
+    '统一社会信用代码 / 纳税人识别号 : 91441900MA00TEST1D 统一社会信用代码 / 纳税人识别号 : 91110302000000000R',
+    '项目名称 规格型号 单位 数 量 单 价 金 额 税率 /征收率 税 额',
+    '*其他机械设备*电器电子产品及配件 颗 1 4468.14 4468.14 13% 580.86',
+    '*其他机械设备*电器电子产品及配件 -137.58 13% -17.89',
+    '合 计 ¥4330.56 ¥562.97',
+    '价税合计(大写) 肆仟捌佰玖拾叁圆伍角叁分 (小写) ¥4893.53',
+    '订单号:3615470000000000 SN/IMEI:ABC123',
+    '备', '注',
+    '开票人: 张三',
+  ].join('\n');
+  const f = parseInvoiceText(text);
+  assert.equal(f.number, '26117000001000000001');
+  assert.equal(f.issue_date, '2026-09-09');
+  assert.equal(f.type, '数电普票');
+  assert.equal(f.buyer_name, '测试（东莞）医疗技术有限公司');
+  assert.equal(f.buyer_tax_id, '91441900MA00TEST1D');
+  assert.equal(f.seller_name, '北京某某信息技术有限公司');
+  assert.equal(f.seller_tax_id, '91110302000000000R');
+  assert.deepEqual([f.net, f.tax, f.total], [4330.56, 562.97, 4893.53]);
+  assert.equal(f.rate, 0.13);
+  assert.equal(f.remark, '订单号:3615470000000000 SN/IMEI:ABC123');
+});
+
+test('real-world layout: full-width colons and spaced currency', () => {
+  const text = [
+    '电子发票（普通发票） 发票号码： 26444000000000000002',
+    '开票日期： 2026年10月23日',
+    '购 名称： 测试医疗科技（佛山）有限公司 销 名称： 广州市某某科技有限公司',
+    '买 售', '方 方',
+    '信 统一社会信用代码/纳税人识别号： 91440605MA00TEST6F 信 统一社会信用代码/纳税人识别号： 91441900MA00TEST7G',
+    '*计算机网络设备*串口服 igc2370 套 6 525.073746312684 3150.44 13% 409.56',
+    '合 计 ¥ 3150.44 ¥ 409.56',
+    '价税合计（大写） 叁仟伍佰陆拾圆整 （小写） ¥ 3560.00',
+    '支付渠道:其他; 交易单号:C000TEST',
+    '备', '注',
+    '开票人： 李四',
+  ].join('\n');
+  const f = parseInvoiceText(text);
+  assert.equal(f.number, '26444000000000000002');
+  assert.equal(f.issue_date, '2026-10-23');
+  assert.equal(f.buyer_tax_id, '91440605MA00TEST6F');
+  assert.equal(f.seller_name, '广州市某某科技有限公司');
+  assert.deepEqual([f.net, f.tax, f.total], [3150.44, 409.56, 3560]);
+  assert.equal(f.remark, '支付渠道:其他; 交易单号:C000TEST');
+});

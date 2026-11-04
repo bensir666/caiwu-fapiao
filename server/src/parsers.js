@@ -95,6 +95,21 @@ export async function pdfText(buffer) {
 }
 
 /**
+ * The remark box sits between the total line and the issuer ("开票人"). Its label is printed vertically
+ * (备 / 注 on separate lines), so drop those label tokens instead of anchoring on them.
+ */
+function remarkOf(flat, totalM) {
+  const start = totalM ? totalM.index + totalM[0].length : flat.search(/备\s*注/);
+  if (start < 0) return null;
+  let seg = flat.slice(start);
+  const end = seg.search(/开\s*票\s*人/);
+  if (end >= 0) seg = seg.slice(0, end);
+  seg = seg.replace(/(^|\s)备\s*注(?=\s|[:：]|$)/g, ' ').replace(/(^|\s)[备注](?=\s|$)/g, ' ')
+    .replace(/^[\s:：]+/, '').replace(/\s+/g, ' ').trim();
+  return seg ? seg.slice(0, 500) : null;
+}
+
+/**
  * 数电发票 PDF text. Buyer appears before seller in reading order on the standard layout; `knownBuyerTax`
  * lets us swap them if a tool exported the columns the other way round.
  */
@@ -120,7 +135,7 @@ export function parseInvoiceText(text, knownBuyerTax = () => false) {
     tax: sumM ? num(sumM[2]) : null,
     total: totalM ? num(totalM[1]) : null,
     rate: rateM ? Number(rateM[1]) / 100 : null,
-    remark: m1(/备\s*注\s*[:：]?\s*(.{0,200})$/),
+    remark: remarkOf(flat, totalM),
   });
   out.type = typeOf(flat.slice(0, 400));
   return out;
