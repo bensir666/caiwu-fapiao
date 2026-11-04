@@ -1,0 +1,22 @@
+services:
+  app:
+    build:
+      context: .
+      args:
+        # 国内服务器构建慢的话，把下面两行的注释去掉
+        # NPM_REGISTRY: https://registry.npmmirror.com
+        # SQLITE_BINARY_MIRROR: https://registry.npmmirror.com/-/binary/better-sqlite3
+        NPM_REGISTRY: https://registry.npmjs.org
+    image: caiwu-fapiao
+    container_name: caiwu-fapiao
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:3000"   # 只给本机的 Nginx 用；不用 Nginx 时改成 "3000:3000"
+    environment:
+      ADMIN_USERNAME: admin
+      # 第一次启动时的管理员密码；不填会随机生成并打印在日志里（docker compose logs app）
+      ADMIN_PASSWORD: ""
+      # 配了 HTTPS 之后改成 1
+      COOKIE_SECURE: "0"
+    volumes:
+      - ./data:/data

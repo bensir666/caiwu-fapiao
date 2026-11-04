@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<EInvoice>
+  <Header><EIid>26332000000123456789</EIid><EInvoiceTag>SWEI3300</EInvoiceTag></Header>
+  <EInvoiceData>
+    <SellerInformation><SellerIdNum>91330421MA28B6XK2P</SellerIdNum><SellerName>浙江华茂塑化有限公司</SellerName></SellerInformation>
+    <BuyerInformation><BuyerIdNum>91440300MA5FTEST01</BuyerIdNum><BuyerName>深圳某某工厂有限公司</BuyerName></BuyerInformation>
+    <BasicInformation>
+      <TotalAmWithoutTax>40000.00</TotalAmWithoutTax>
+      <TotalTaxAm>5200.00</TotalTaxAm>
+      <TotalTax-includedAmount>45200.00</TotalTax-includedAmount>
+      <RequestTime>2026-10-28 10:12:33</RequestTime>
+    </BasicInformation>
+    <IssuItemInformation><ItemName>*塑料*PP颗粒</ItemName><TaxRate>0.13</TaxRate><Amount>40000.00</Amount></IssuItemInformation>
+    <AdditionalInformation><Remark>10月对账</Remark></AdditionalInformation>
+  </EInvoiceData>
+  <TaxSupervisionInfo><InvoiceNumber>26332000000123456789</InvoiceNumber><IssueTime>2026-10-28</IssueTime></TaxSupervisionInfo>
+  <InvoiceType>增值税专用发票</InvoiceType>
+</EInvoice>
