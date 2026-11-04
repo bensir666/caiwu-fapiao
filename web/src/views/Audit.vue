@@ -1,4 +1,5 @@
 <script setup>
+import PageGuide from '../components/PageGuide.vue';
 import { ref, watch } from 'vue';
 import { api, dtm, attempt } from '../api.js';
 
@@ -8,10 +9,12 @@ const rows = ref([]);
 const open = ref(null);
 const load = async () => { rows.value = (await attempt(() => api.get('/api/audit', { target: target.value, limit: 500 }))) || []; };
 watch(target, load, { immediate: true });
+const guideTips = ['所有创建、修改、终审、驳回、入账、删除和登录都会记录，包括失败的登录。', '可以按类别筛选（对账单、发票、用户等）。出现对不上的账时先来这里查是谁、什么时候改的。'];
 </script>
 
 <template>
   <div><h2>操作记录</h2><p class="sub">所有创建、修改、终审、入账、删除都会留痕，最近 500 条。</p></div>
+  <PageGuide id="audit" anchor="f-audit" :tips="guideTips" />
   <section class="panel">
     <div class="panel-h"><div class="subtabs"><button v-for="(l, k) in TARGETS" :key="k" :aria-pressed="target === k" @click="target = k">{{ l }}</button></div></div>
     <div class="tbl"><table>

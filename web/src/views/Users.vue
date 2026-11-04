@@ -1,4 +1,5 @@
 <script setup>
+import PageGuide from '../components/PageGuide.vue';
 import { ref, onMounted } from 'vue';
 import { api, state, dt, dtm, attempt, toast, loadMe, randomPassword, PASSWORD_RULE } from '../api.js';
 import Modal from '../components/Modal.vue';
@@ -32,10 +33,12 @@ async function kick(u) {
   const r = await attempt(() => api.post(`/api/users/${u.id}/logout`));
   if (r) { toast(`已让 ${u.name} 在 ${r.count} 台设备上下线，并解除锁定`); ed.value = null; load(); }
 }
+const guideTips = ['先填<b>公司名称</b>和<b>启用日</b>，再给每个人建账号。新账号首次登录必须改密码。', '跟单员只能看分配给自己的供应商，分配在「基础资料 → 供应商」里设置。', '有人离职就<b>停用</b>账号（不要删除，留痕需要）；忘记密码可以重置，重置后会解锁并强制下线。', '列表里能看到每个人最近登录的时间和 IP，发现异常可以「强制下线」。'];
 </script>
 
 <template>
   <div><h2>用户与设置</h2><p class="sub">跟单员只能看到分配给自己的供应商；财务负责终审、发票分配和基础资料；管理员另外管理用户。</p></div>
+  <PageGuide id="users" anchor="f-users" :tips="guideTips" />
   <div class="grid2">
     <section class="panel">
       <div class="panel-h"><h3>新建用户</h3></div>

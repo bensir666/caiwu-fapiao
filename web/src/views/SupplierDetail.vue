@@ -1,4 +1,5 @@
 <script setup>
+import PageGuide from '../components/PageGuide.vue';
 import { ref, watch, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { api, money, pct, dt, role, attempt, copyText } from '../api.js';
@@ -13,6 +14,7 @@ const d = ref(null);
 const load = async () => { d.value = await attempt(() => api.get(`/api/suppliers/${props.id}/detail`, { board: board.value })); };
 watch(board, load, { immediate: true });
 const setBoard = (b) => router.replace({ query: b ? { board: b } : {} });
+const guideTips = ['上方是这家供应商在各板块的应开、已开、欠票和账龄。', '下面分别列出对账单、发票和税费成本，点发票能看原件。', '催票话术也在这里，可以直接复制。'];
 </script>
 
 <template>
@@ -22,6 +24,7 @@ const setBoard = (b) => router.replace({ query: b ? { board: b } : {} });
       <h2>{{ d.supplier.name }}</h2>
       <p class="sub">{{ d.supplier.code }} · 默认税率 {{ pct(d.supplier.rate) }}<template v-if="d.supplier.owner_name"> · 跟单员 {{ d.supplier.owner_name }}</template><template v-if="d.supplier.tax_cost"> · 需另付税费成本</template><template v-if="d.supplier.contact"> · {{ d.supplier.contact }}</template></p>
     </div>
+    <PageGuide id="supplier" anchor="f-supplier" :tips="guideTips" />
     <div class="subtabs" v-if="d.boards.length > 1">
       <button :aria-pressed="!board" @click="setBoard('')">全部板块</button>
       <button v-for="b in d.boards" :key="b" :aria-pressed="board === b" @click="setBoard(b)">{{ b }}</button>

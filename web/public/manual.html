@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>操作手册 · 供应商发票跟踪</title>
+<style>
+:root{
+  --bg:#f3f5f4; --panel:#ffffff; --sunk:#e9eeec; --line:#d5dddb; --fg:#17211f; --muted:#5b6965;
+  --accent:#1d5c6e; --accent-soft:#dcebee;
+  --good:#2f7a4a; --good-soft:#e0f0e5; --warn:#a86512; --warn-soft:#f8ebd6; --bad:#b33a2e; --bad-soft:#f8e1de;
+  --f-body:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  --f-num:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#121816; --panel:#1a2220; --sunk:#151c1a; --line:#2c3835; --fg:#e4ebe9; --muted:#97a6a2;
+  --accent:#6fb3c4; --accent-soft:#1f3a41;
+  --good:#6cc28c; --good-soft:#1c3326; --warn:#e2a85a; --warn-soft:#3a2c17; --bad:#ef8a7e; --bad-soft:#3d201c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#121816; --panel:#1a2220; --sunk:#151c1a; --line:#2c3835; --fg:#e4ebe9; --muted:#97a6a2;
+  --accent:#6fb3c4; --accent-soft:#1f3a41;
+  --good:#6cc28c; --good-soft:#1c3326; --warn:#e2a85a; --warn-soft:#3a2c17; --bad:#ef8a7e; --bad-soft:#3d201c; color-scheme:dark}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:16px}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.75}
+a{color:var(--accent)}
+.page{display:grid;grid-template-columns:220px minmax(0,1fr);gap:40px;max-width:1160px;margin:0 auto;padding:32px max(16px,env(safe-area-inset-right)) 80px max(16px,env(safe-area-inset-left))}
+nav.toc{position:sticky;top:16px;align-self:start;max-height:calc(100vh - 32px);overflow:auto;font-size:13px}
+nav.toc b{display:block;margin-bottom:6px;color:var(--muted);font-weight:500;letter-spacing:.06em}
+nav.toc ol{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+nav.toc a{display:block;padding:3px 8px;border-radius:5px;color:var(--fg);text-decoration:none}
+nav.toc a:hover{background:var(--sunk)}
+nav.toc ol ol{padding-left:12px}
+nav.toc ol ol a{color:var(--muted)}
+main{min-width:0}
+header.hero{border-bottom:1px solid var(--line);padding-bottom:20px;margin-bottom:8px}
+header.hero h1{font-size:28px;margin:0 0 6px;text-wrap:balance}
+header.hero p{margin:0;color:var(--muted)}
+h2{font-size:21px;margin:48px 0 12px;padding-top:8px;text-wrap:balance}
+h3{font-size:16px;margin:28px 0 8px}
+p{margin:8px 0}
+ol.steps,ul{padding-left:22px}
+ol.steps li,ul li{margin:4px 0}
+table{border-collapse:collapse;width:100%;font-size:14px;margin:12px 0;background:var(--panel)}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{background:var(--sunk);font-weight:500;color:var(--muted);white-space:nowrap}
+.tbl{overflow-x:auto}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 18px;margin:12px 0}
+.tip{background:var(--accent-soft);border:0;color:var(--fg)}
+.warn{background:var(--warn-soft);border:0}
+.tip b,.warn b{font-weight:600}
+code,kbd{font-family:var(--f-num);font-size:.9em;background:var(--sunk);padding:1px 5px;border-radius:4px}
+.chip{display:inline-block;padding:0 8px;border-radius:10px;font-size:12px;line-height:20px;white-space:nowrap}
+.c-good{background:var(--good-soft);color:var(--good)}.c-warn{background:var(--warn-soft);color:var(--warn)}.c-bad{background:var(--bad-soft);color:var(--bad)}.c-mut{background:var(--sunk);color:var(--muted)}.c-acc{background:var(--accent-soft);color:var(--accent)}
+figure{margin:16px 0 20px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:16px}
+figure svg{display:block;width:100%;height:auto;max-width:100%;color:var(--fg)}
+figcaption{font-size:13px;color:var(--muted);margin-top:10px}
+/* diagram parts */
+svg text{font-family:var(--f-body);font-size:13px;fill:currentColor}
+svg .lbl{font-size:12px;fill:var(--muted)}
+svg .n{fill:var(--panel);stroke:currentColor;stroke-width:1.3}
+svg .q{fill:var(--sunk);stroke:currentColor;stroke-width:1.3}
+svg .ok{fill:var(--good-soft);stroke:var(--good);stroke-width:1.3}
+svg .pend{fill:var(--warn-soft);stroke:var(--warn);stroke-width:1.3}
+svg .bad{fill:var(--bad-soft);stroke:var(--bad);stroke-width:1.3}
+svg .key{fill:var(--accent-soft);stroke:var(--accent);stroke-width:1.8}
+svg .e{fill:none;stroke:currentColor;stroke-width:1.3}
+svg .e-mut{fill:none;stroke:var(--muted);stroke-width:1.3;stroke-dasharray:4 3}
+svg .seg0{fill:var(--sunk);stroke:var(--line)}
+svg .paid{fill:var(--good-soft);stroke:var(--good)}
+svg .owe{fill:var(--bad-soft);stroke:var(--bad)}
+.roles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.roles .card{margin:0}
+.roles h4{margin:0 0 4px;font-size:15px}
+.roles ul{margin:4px 0 0;padding-left:18px;font-size:14px}
+.back{font-size:13px}
+@media (max-width:900px){
+  .page{grid-template-columns:minmax(0,1fr);gap:16px;padding-top:20px}
+  nav.toc{position:static;max-height:none;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px}
+  nav.toc ol ol{display:none}
+  .roles{grid-template-columns:minmax(0,1fr)}
+}
+@media print{
+  body{background:#fff;color:#000;font-size:12pt}
+  nav.toc,.back{display:none}
+  .page{display:block;padding:0}
+  h2{break-before:page}
+  figure,table,.card{break-inside:avoid}
+}
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="toc" aria-label="目录">
+  <b>目录</b>
+  <ol>
+    <li><a href="#overview">1. 这个系统是做什么的</a></li>
+    <li><a href="#roles">2. 角色和权限</a></li>
+    <li><a href="#flow">3. 整体流程图</a></li>
+    <li><a href="#start">4. 第一次使用</a></li>
+    <li><a href="#daily">5. 日常工作清单</a></li>
+    <li><a href="#features">6. 功能说明</a>
+      <ol>
+        <li><a href="#f-overview">欠票总览</a></li>
+        <li><a href="#f-supplier">供应商明细</a></li>
+        <li><a href="#f-statements">对账单</a></li>
+        <li><a href="#f-invoices">发票</a></li>
+        <li><a href="#f-pending">待处理发票</a></li>
+        <li><a href="#f-dunning">催票</a></li>
+        <li><a href="#f-taxcost">税费成本</a></li>
+        <li><a href="#f-master">基础资料</a></li>
+        <li><a href="#f-users">用户与设置</a></li>
+        <li><a href="#f-account">账号安全</a></li>
+        <li><a href="#f-audit">操作记录</a></li>
+        <li><a href="#f-export">导出 Excel</a></li>
+      </ol>
+    </li>
+    <li><a href="#calc">7. 欠票和账龄怎么算</a></li>
+    <li><a href="#faq">8. 常见问题</a></li>
+  </ol>
+</nav>
+
+<main>
+<header class="hero">
+  <p class="back"><a href="/">← 回到系统</a></p>
+  <h1>供应商发票跟踪 · 操作手册</h1>
+  <p>适用于跟单员、财务和管理员。手机和电脑上的操作一样。</p>
+</header>
+
+<h2 id="overview">1. 这个系统是做什么的</h2>
+<p>系统记录每个供应商<b>应该给我们开多少发票</b>、<b>已经开了多少</b>、<b>还欠多少</b>，电商和工厂两个板块分开算。</p>
+<ul>
+  <li><b>应开票额</b>：系统启用前的期初欠票，加上财务终审通过的对账单和调整单（都按含税金额计）。</li>
+  <li><b>已开票额</b>：已经入账的发票，按价税合计累加。普票也算；红字发票是负数，会自动冲减。</li>
+  <li><b>欠票</b>：应开票额减去已开票额。为负数时，表示供应商多开了。</li>
+</ul>
+<div class="card tip"><b>一句话记住：</b>对账单决定「该开多少」，发票决定「开了多少」，两者一减就是欠多少。</div>
+
+<h2 id="roles">2. 角色和权限</h2>
+<div class="roles">
+  <div class="card"><h4>跟单员</h4>
+    <ul><li>只看到分配给自己的供应商</li><li>创建、复核、提交对账单</li><li>上传供应商发来的发票</li><li>查看欠票和催票话术</li></ul></div>
+  <div class="card"><h4>财务</h4>
+    <ul><li>看所有供应商</li><li>终审或驳回对账单</li><li>处理「待处理」发票，改发票板块</li><li>登记税费成本</li><li>维护基础资料，导出报表，查看操作记录</li></ul></div>
+  <div class="card"><h4>管理员</h4>
+    <ul><li>财务能做的都能做</li><li>新建、停用用户，重置密码，强制下线</li><li>设置公司名称和启用日</li></ul></div>
+</div>
+
+<h2 id="flow">3. 整体流程图</h2>
+<figure>
+  <svg viewBox="0 0 900 330" role="img" aria-label="对账单经跟单员创建、财务终审后计入应开票额；发票上传后自动识别归属，入账后计入已开票额；认不出的发票进入待处理，由财务分配；欠票等于应开减已开。">
+    <defs><marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="currentColor"/></marker></defs>
+    <text class="lbl" x="20" y="30">对账（决定应开多少）</text>
+    <rect class="n" x="20" y="40" width="120" height="44" rx="8"/><text x="80" y="67" text-anchor="middle">供应商对账</text>
+    <rect class="n" x="170" y="40" width="120" height="44" rx="8"/><text x="230" y="60" text-anchor="middle">跟单员创建</text><text x="230" y="76" text-anchor="middle" class="lbl">并自行复核</text>
+    <rect class="n" x="320" y="40" width="120" height="44" rx="8"/><text x="380" y="67" text-anchor="middle">财务终审</text>
+    <rect class="ok" x="470" y="40" width="120" height="44" rx="8"/><text x="530" y="67" text-anchor="middle">已生效</text>
+    <rect class="n" x="620" y="40" width="120" height="44" rx="8"/><text x="680" y="67" text-anchor="middle">应开票额</text>
+    <line class="e" x1="140" y1="62" x2="168" y2="62" marker-end="url(#a1)"/>
+    <line class="e" x1="290" y1="62" x2="318" y2="62" marker-end="url(#a1)"/><text class="lbl" x="304" y="100" text-anchor="middle">提交</text>
+    <line class="e" x1="440" y1="62" x2="468" y2="62" marker-end="url(#a1)"/><text class="lbl" x="454" y="100" text-anchor="middle">通过</text>
+    <line class="e" x1="590" y1="62" x2="618" y2="62" marker-end="url(#a1)"/><text class="lbl" x="604" y="100" text-anchor="middle">计入</text>
+    <path class="e" d="M370 40 C370 8, 240 8, 240 38" marker-end="url(#a1)"/><text class="lbl" x="305" y="16" text-anchor="middle">驳回 → 修改后再提交</text>
+
+    <text class="lbl" x="20" y="180">开票（决定已开多少）</text>
+    <rect class="n" x="20" y="190" width="120" height="44" rx="8"/><text x="80" y="217" text-anchor="middle">供应商开票</text>
+    <rect class="n" x="170" y="190" width="120" height="44" rx="8"/><text x="230" y="210" text-anchor="middle">上传发票</text><text x="230" y="226" text-anchor="middle" class="lbl">XML / PDF</text>
+    <rect class="n" x="320" y="190" width="120" height="44" rx="8"/><text x="380" y="210" text-anchor="middle">自动识别</text><text x="380" y="226" text-anchor="middle" class="lbl">按税号归属</text>
+    <rect class="ok" x="470" y="190" width="120" height="44" rx="8"/><text x="530" y="217" text-anchor="middle">已入账</text>
+    <rect class="n" x="620" y="190" width="120" height="44" rx="8"/><text x="680" y="217" text-anchor="middle">已开票额</text>
+    <line class="e" x1="140" y1="212" x2="168" y2="212" marker-end="url(#a1)"/>
+    <line class="e" x1="290" y1="212" x2="318" y2="212" marker-end="url(#a1)"/>
+    <line class="e" x1="440" y1="212" x2="468" y2="212" marker-end="url(#a1)"/><text class="lbl" x="454" y="250" text-anchor="middle">认得出</text>
+    <line class="e" x1="590" y1="212" x2="618" y2="212" marker-end="url(#a1)"/>
+    <rect class="pend" x="320" y="276" width="120" height="40" rx="8"/><text x="380" y="301" text-anchor="middle">待处理</text>
+    <line class="e" x1="380" y1="234" x2="380" y2="274" marker-end="url(#a1)"/><text class="lbl" x="388" y="260">认不出</text>
+    <path class="e" d="M440 296 H530 V236" marker-end="url(#a1)"/><text class="lbl" x="458" y="314">财务分配</text>
+
+    <rect class="key" x="775" y="115" width="115" height="54" rx="8"/><text x="832" y="138" text-anchor="middle">欠票</text><text x="832" y="157" text-anchor="middle" class="lbl">= 应开 − 已开</text>
+    <path class="e" d="M740 62 H760 V128 H773" marker-end="url(#a1)"/>
+    <path class="e" d="M740 212 H760 V156 H773" marker-end="url(#a1)"/>
+  </svg>
+  <figcaption>上面一条线决定「应开多少」，下面一条线决定「已开多少」。只有终审通过的对账单和已入账的发票才会参与计算。</figcaption>
+</figure>
+
+<h2 id="start">4. 第一次使用</h2>
+<p>管理员按下面的顺序做一遍，系统就能用了。管理员和财务登录后，首页的「上手引导」会自动打勾，提示还差哪一步，点「去完成」直接跳到对应页面。</p>
+<p>另外，每个页面顶部都有一块「这个页面怎么用」的简短提示，看熟了可以点「收起」；页面右上角的「帮助」随时打开这本手册。</p>
+<ol class="steps">
+  <li><b>登录并改密码。</b>用部署时拿到的 admin 账号登录，系统会要求先改成你自己的密码。</li>
+  <li><b>系统设置。</b>在「用户与设置」里填写公司名称和<b>启用日</b>。期初欠票按启用日计算账龄。</li>
+  <li><b>登记我方受票主体。</b>在「基础资料 → 我方受票主体」里，把电商和工厂所有收票公司的全称、税号都登记上，并选好板块。<span class="chip c-warn">最关键</span>发票是按购买方税号判断板块的，没登记的公司开来的票都会进「待处理」。</li>
+  <li><b>录入供应商和开票主体。</b>推荐用「基础资料 → 批量导入」：下载「供应商资料模板」，一行填一个开票主体（同一个供应商有几个开票公司就写几行），填好上传。系统会先预检，确认没问题再导入。也可以在页面上逐个新增。</li>
+  <li><b>核对期初欠票。</b>在「基础资料 → 期初欠票」里，按供应商分电商、工厂填写启用日之前的欠票总额（含税）。</li>
+  <li><b>建账号。</b>在「用户与设置」里给跟单员和财务建账号，并把供应商分配给对应的跟单员（在供应商资料里选「跟单员」）。新账号第一次登录时必须改密码。</li>
+</ol>
+
+<h2 id="daily">5. 日常工作清单</h2>
+<div class="tbl"><table>
+  <thead><tr><th>谁</th><th>什么时候</th><th>做什么</th></tr></thead>
+  <tbody>
+    <tr><td>跟单员</td><td>和供应商对完账</td><td>「对账单 → 新建对账单」，或者导入供应商填好的 Excel，核对无误后点「复核无误，提交终审」</td></tr>
+    <tr><td>跟单员</td><td>对账单被驳回</td><td>首页和「对账单」上会有红色数字提醒，看驳回原因，修改后重新提交</td></tr>
+    <tr><td>跟单员 / 财务</td><td>收到供应商的发票</td><td>「发票 → 上传发票」，可以一次选多张，逐张核对后确认</td></tr>
+    <tr><td>跟单员</td><td>每周</td><td>看「催票」，把话术复制发给欠票的供应商</td></tr>
+    <tr><td>财务</td><td>每天</td><td>处理「对账单」里待终审的单据，以及「发票 → 待处理」里的发票</td></tr>
+    <tr><td>财务</td><td>每天</td><td>看「税费成本」里的待登记提醒，登记要另付的税费</td></tr>
+    <tr><td>财务</td><td>月底</td><td>在「欠票总览」里导出 Excel（含账龄），按账龄跟进 60 天以上的欠票</td></tr>
+  </tbody>
+</table></div>
+
+<h2 id="features">6. 功能说明</h2>
+
+<h3 id="f-overview">欠票总览（首页）</h3>
+<ul>
+  <li>顶部四个数字：应开票额、已开票额、欠票额，以及需要你处理的事项（点击可以直接跳过去）。</li>
+  <li><b>欠票账龄</b>：把欠票按时间分成 0–30、31–60、61–90、90 天以上四段，算法见<a href="#calc">第 7 节</a>。</li>
+  <li><b>供应商欠票</b>表：按欠票从多到少排列，进度条表示已开的比例；状态栏显示最早一笔欠了多少天，超过 90 天会标红。点某一行可以看这个供应商的明细。</li>
+  <li>页面顶部的「全部 / 电商 / 工厂」可以切换板块，所有页面都会跟着变。</li>
+  <li>跟单员只看得到自己负责的供应商。</li>
+</ul>
+
+<h3 id="f-supplier">供应商明细</h3>
+<p>按板块分别显示应开（含期初）、已开、欠票和账龄，下面依次列出：</p>
+<ul>
+  <li>催票话术，可以一键复制；</li>
+  <li>这个供应商的全部开票主体；</li>
+  <li>所有对账单和调整单；</li>
+  <li>所有发票，可以点「原件」查看；</li>
+  <li>税费成本（只有财务和管理员能看到）。</li>
+</ul>
+
+<h3 id="f-statements">对账单</h3>
+<figure>
+  <svg viewBox="0 0 760 250" role="img" aria-label="对账单状态：草稿提交后变待终审；财务通过后已生效，驳回后变已驳回，修改后可以再提交；草稿和已驳回可以作废；已生效的单据只能新建调整单冲减或补差。">
+    <defs><marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="currentColor"/></marker></defs>
+    <rect class="n" x="20" y="30" width="120" height="44" rx="8"/><text x="80" y="57" text-anchor="middle">草稿</text>
+    <rect class="pend" x="220" y="30" width="120" height="44" rx="8"/><text x="280" y="57" text-anchor="middle">待终审</text>
+    <rect class="ok" x="420" y="30" width="120" height="44" rx="8"/><text x="480" y="57" text-anchor="middle">已生效</text>
+    <rect class="key" x="620" y="30" width="120" height="44" rx="8"/><text x="680" y="57" text-anchor="middle">调整单</text>
+    <rect class="n" x="20" y="170" width="120" height="44" rx="8"/><text x="80" y="197" text-anchor="middle">已作废</text>
+    <rect class="bad" x="220" y="170" width="120" height="44" rx="8"/><text x="280" y="197" text-anchor="middle">已驳回</text>
+    <line class="e" x1="140" y1="52" x2="218" y2="52" marker-end="url(#a2)"/><text class="lbl" x="179" y="22" text-anchor="middle">跟单员提交</text>
+    <line class="e" x1="340" y1="52" x2="418" y2="52" marker-end="url(#a2)"/><text class="lbl" x="379" y="22" text-anchor="middle">财务通过</text>
+    <line class="e" x1="540" y1="52" x2="618" y2="52" marker-end="url(#a2)"/><text class="lbl" x="579" y="22" text-anchor="middle">要冲减时新建</text>
+    <line class="e" x1="262" y1="74" x2="262" y2="168" marker-end="url(#a2)"/><text class="lbl" x="254" y="126" text-anchor="end">财务驳回</text>
+    <line class="e" x1="298" y1="170" x2="298" y2="76" marker-end="url(#a2)"/><text class="lbl" x="306" y="126">修改后再提交</text>
+    <line class="e" x1="80" y1="74" x2="80" y2="168" marker-end="url(#a2)"/><text class="lbl" x="88" y="126">作废</text>
+    <line class="e" x1="220" y1="192" x2="142" y2="192" marker-end="url(#a2)"/><text class="lbl" x="181" y="184" text-anchor="middle">作废</text>
+    <text class="lbl" x="680" y="96" text-anchor="middle">同样要提交、终审</text>
+    <text class="lbl" x="480" y="96" text-anchor="middle">计入应开票额</text>
+  </svg>
+  <figcaption>只有「已生效」的单据会计入应开票额。已生效的单据不能修改或作废，金额有误时请新建调整单，冲减填负数，补差填正数。</figcaption>
+</figure>
+<p><b>新建对账单：</b></p>
+<ol class="steps">
+  <li>点「新建对账单」，选供应商和板块。税率会自动带出供应商的默认税率。</li>
+  <li>填写期间、金额口径（含税或不含税）和对账金额。下方会实时显示不含税金额、税额和计入应开的含税金额。</li>
+  <li>如果这次要另付税费，可以把金额填在「另付税费成本」里备查。实际支付的税费请到「税费成本」里登记。</li>
+  <li>核对无误点「复核无误，提交终审」；没想好就先「存为草稿」。</li>
+</ol>
+<p><b>导入供应商填的 Excel：</b>点「导入供应商填的 Excel」，选择供应商按《供应商对账单模板》填好的文件。系统会读出供应商、板块、期间、口径、税率，并把明细行的数量×单价加总成对账金额，自动填进表单。核对后再提交。模板可以在本页右侧下载。</p>
+<p><b>财务终审：</b>在「待终审」里点「通过」，确认框里会显示供应商、板块和计入金额；有问题就点「驳回」并写明原因，跟单员会看到。</p>
+<p><b>调整单：</b>在已生效的对账单那一行点「调整单」，金额填正数表示补差，填负数表示冲减。调整单同样要提交和终审。</p>
+
+<h3 id="f-invoices">发票</h3>
+<p><b>上传：</b>在「发票 → 上传发票」里选择文件，可以一次选多张，也可以把文件拖进框里。</p>
+<ul>
+  <li><b>XML</b>：数电发票的 XML 文件识别最准，能从税务平台或开票方那里拿到时优先用它。</li>
+  <li><b>PDF</b>：数电发票的 PDF 也能自动识别。</li>
+  <li><b>OFD、照片</b>：暂时不能自动识别，需要对照原件手工填写，原件同样会存档。</li>
+  <li>没有文件时，可以点「手工录入」直接填写。</li>
+</ul>
+<p><b>核对：</b>每张发票读出来后，右侧显示识别结果和「归属判断」，说明系统为什么归到某个供应商和板块。请对照原件看一遍号码和金额，然后点「确认提交」。改了某个字段，归属判断会马上重新计算。</p>
+<figure>
+  <svg viewBox="0 0 760 590" role="img" aria-label="发票归属判断顺序：先查号码是否重复，再查金额是否自洽，再按购买方税号确定板块，再按销售方税号找开票主体，主体只属于一个供应商就入账，属于多个供应商时看本板块谁有欠票，只有一家就入账，否则进入待处理由财务分配。">
+    <defs><marker id="a3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="currentColor"/></marker></defs>
+    <rect class="q" x="40" y="20" width="340" height="46" rx="8"/><text x="210" y="48" text-anchor="middle">① 这个发票号码录过吗？</text>
+    <rect class="q" x="40" y="110" width="340" height="46" rx="8"/><text x="210" y="138" text-anchor="middle">② 不含税金额 + 税额 = 价税合计？</text>
+    <rect class="q" x="40" y="200" width="340" height="46" rx="8"/><text x="210" y="222" text-anchor="middle">③ 购买方税号是我方受票主体吗？</text><text x="210" y="239" text-anchor="middle" class="lbl">是 → 由它决定电商 / 工厂板块</text>
+    <rect class="q" x="40" y="290" width="340" height="46" rx="8"/><text x="210" y="318" text-anchor="middle">④ 销售方税号登记成开票主体了吗？</text>
+    <rect class="q" x="40" y="380" width="340" height="46" rx="8"/><text x="210" y="408" text-anchor="middle">⑤ 这个主体属于几个供应商？</text>
+    <rect class="q" x="40" y="470" width="340" height="46" rx="8"/><text x="210" y="498" text-anchor="middle">⑥ 本板块只有一家供应商有欠票？</text>
+
+    <line class="e" x1="210" y1="66" x2="210" y2="108" marker-end="url(#a3)"/><text class="lbl" x="218" y="92">没录过</text>
+    <line class="e" x1="210" y1="156" x2="210" y2="198" marker-end="url(#a3)"/><text class="lbl" x="218" y="182">相等</text>
+    <line class="e" x1="210" y1="246" x2="210" y2="288" marker-end="url(#a3)"/><text class="lbl" x="218" y="272">是</text>
+    <line class="e" x1="210" y1="336" x2="210" y2="378" marker-end="url(#a3)"/><text class="lbl" x="218" y="362">登记了</text>
+    <line class="e" x1="210" y1="426" x2="210" y2="468" marker-end="url(#a3)"/><text class="lbl" x="218" y="452">多个</text>
+
+    <rect class="bad" x="470" y="20" width="270" height="46" rx="8"/><text x="605" y="48" text-anchor="middle">拒绝，不能重复入账</text>
+    <rect class="pend" x="470" y="110" width="270" height="46" rx="8"/><text x="605" y="138" text-anchor="middle">待处理：金额需核对</text>
+    <rect class="pend" x="470" y="200" width="270" height="46" rx="8"/><text x="605" y="228" text-anchor="middle">待处理：购买方不是我方</text>
+    <rect class="pend" x="470" y="290" width="270" height="46" rx="8"/><text x="605" y="318" text-anchor="middle">待处理：开票主体未登记</text>
+    <rect class="ok" x="470" y="380" width="270" height="46" rx="8"/><text x="605" y="400" text-anchor="middle">入账到这个供应商</text><text x="605" y="417" text-anchor="middle" class="lbl">它只在另一板块供货时自动改归</text>
+    <rect class="ok" x="470" y="470" width="270" height="46" rx="8"/><text x="605" y="498" text-anchor="middle">入账到有欠票的那一家</text>
+    <rect class="pend" x="40" y="540" width="340" height="40" rx="8"/><text x="210" y="565" text-anchor="middle">待处理：共用主体需分配</text>
+
+    <line class="e" x1="380" y1="43" x2="468" y2="43" marker-end="url(#a3)"/><text class="lbl" x="424" y="36" text-anchor="middle">录过</text>
+    <line class="e" x1="380" y1="133" x2="468" y2="133" marker-end="url(#a3)"/><text class="lbl" x="424" y="126" text-anchor="middle">不等</text>
+    <line class="e" x1="380" y1="223" x2="468" y2="223" marker-end="url(#a3)"/><text class="lbl" x="424" y="216" text-anchor="middle">不是</text>
+    <line class="e" x1="380" y1="313" x2="468" y2="313" marker-end="url(#a3)"/><text class="lbl" x="424" y="306" text-anchor="middle">没登记</text>
+    <line class="e" x1="380" y1="403" x2="468" y2="403" marker-end="url(#a3)"/><text class="lbl" x="424" y="396" text-anchor="middle">1 个</text>
+    <line class="e" x1="380" y1="493" x2="468" y2="493" marker-end="url(#a3)"/><text class="lbl" x="424" y="486" text-anchor="middle">是</text>
+    <line class="e" x1="210" y1="516" x2="210" y2="538" marker-end="url(#a3)"/><text class="lbl" x="218" y="532">否</text>
+  </svg>
+  <figcaption>系统按 ①→⑥ 的顺序判断。绿色表示自动入账，橙色表示进入「待处理」等财务决定，红色表示直接拒绝。上传核对时，右侧的「归属判断」会把每一步的结果列出来。</figcaption>
+</figure>
+<p><b>红字发票：</b>金额为负数的发票会冲减已开票额，系统还会从备注里找出被冲红的蓝字发票号码。</p>
+<p><b>全部发票（财务）：</b>可以按状态筛选，按发票号或销售方搜索，查看原件。另外有三个操作：</p>
+<ul>
+  <li><b>改板块</b>：跨板块核销时用，例如工厂的票冲电商的欠票。</li>
+  <li><b>修改</b>：改正识别错的字段。</li>
+  <li><b>删除</b>：只在录错时用，删除会留下记录。</li>
+</ul>
+
+<h3 id="f-pending">待处理发票（财务）</h3>
+<div class="tbl"><table>
+  <thead><tr><th>原因</th><th>通常怎么处理</th></tr></thead>
+  <tbody>
+    <tr><td><span class="chip c-warn">开票主体未登记</span></td><td>选择它属于哪个供应商和板块，勾上「同时登记这个开票主体」，点「分配并入账」。以后这家公司开的票就会自动归属。</td></tr>
+    <tr><td><span class="chip c-warn">共用主体需分配</span></td><td>一个开票主体同时属于几个供应商，系统列出候选供应商和各自的欠票，选一个分配。</td></tr>
+    <tr><td><span class="chip c-bad">购买方不是我方</span></td><td>先确认是不是漏登了我方的受票主体：漏登了就去「基础资料」补上，再回来分配；确实开错了抬头，就点「退回供应商」。</td></tr>
+    <tr><td><span class="chip c-bad">金额需核对</span></td><td>点「修改信息」对照原件改正金额后再分配；原件本身有错就退回。</td></tr>
+  </tbody>
+</table></div>
+
+<h3 id="f-dunning">催票</h3>
+<p>列出所有还欠票的供应商，每家都配好一段话术，例如：「××您好，截至 2026-11-04，贵司在我司工厂板块还有 4,824.44 元发票未开……」。可以单条复制，也可以全部复制。用「欠票不少于」可以过滤掉金额很小的。</p>
+
+<h3 id="f-taxcost">税费成本（财务）</h3>
+<ul>
+  <li>部分供应商开票时，我方要另外支付税费。这部分单独记成本，<b>不影响欠票</b>。</li>
+  <li>在供应商资料里勾选「开票时我方需要另付税费成本」后，这家供应商的发票一入账，「待登记」里就会出现提醒。</li>
+  <li>点「登记税费」，填写金额和支付日期即可。确实不需要支付的，点「这张不需要」。</li>
+  <li>底部明细可以导出 Excel，导出文件里有按供应商汇总的工作表。</li>
+</ul>
+
+<h3 id="f-master">基础资料（财务、管理员）</h3>
+<div class="tbl"><table>
+  <thead><tr><th>页签</th><th>内容</th><th>注意</th></tr></thead>
+  <tbody>
+    <tr><td>供应商</td><td>名称、供应板块、默认税率、是否另付税费、跟单员、联系方式</td><td>停用的供应商不再出现在下拉框里，但仍有欠票的照常显示</td></tr>
+    <tr><td>开票主体</td><td>供应商开票用的公司全称和税号，可以关联多个供应商</td><td>同一个供应商有多家开票公司时，都挂在它下面，例如京东旗下的几家公司</td></tr>
+    <tr><td>我方受票主体</td><td>我方收票公司的全称、税号、所属板块</td><td>决定发票归电商还是工厂，一定要登记全</td></tr>
+    <tr><td>期初欠票</td><td>启用日之前的历史欠票，按供应商分电商和工厂填写</td><td>含税金额；改完点「保存」</td></tr>
+    <tr><td>批量导入</td><td>方式一：供应商资料模板；方式二：供应商填好的对账单模板里的「开票主体」表</td><td>先预检、后导入；以「示例」开头的行会被跳过</td></tr>
+  </tbody>
+</table></div>
+
+<h3 id="f-users">用户与设置（管理员）</h3>
+<ul>
+  <li><b>新建用户：</b>填姓名、登录用户名和角色，点「随机生成」得到一个合规的初始密码，把用户名和密码告诉对方。对方第一次登录时必须改密码。</li>
+  <li><b>用户列表：</b>显示最近登录时间和 IP、在线设备数、是否锁定、是否还没改初始密码。</li>
+  <li><b>点某个用户可以：</b>
+    <ul>
+      <li>改姓名和角色；</li>
+      <li>重置密码，对方会立刻下线，下次登录要改密码；</li>
+      <li>停用账号，对方会立刻下线；</li>
+      <li>强制下线并解除锁定。</li>
+    </ul>
+  </li>
+  <li><b>系统设置：</b>公司名称会显示在页面顶部和催票话术里；启用日是期初欠票的日期，用来算账龄。</li>
+</ul>
+
+<h3 id="f-account">账号安全（所有人）</h3>
+<ul>
+  <li>点页面右上角的「账号安全」可以修改密码。密码规则：至少 8 位，同时包含字母和数字，不能包含用户名，不能是常见密码。</li>
+  <li>改密码后，你在其他设备上的登录会全部退出。</li>
+  <li>「登录中的设备」列出你在哪些手机或电脑上登录着。看到不认识的设备，先点「退出其他设备」，再改密码。</li>
+  <li>12 小时不操作会自动退出；一次登录最长保持 7 天。</li>
+  <li>连续输错 10 次密码，账号会锁定 15 分钟。着急的话可以找管理员解锁。</li>
+</ul>
+
+<h3 id="f-audit">操作记录（财务、管理员）</h3>
+<p>系统会记录每一次操作：</p>
+<ul>
+  <li>创建、修改、提交、终审、驳回、作废；</li>
+  <li>上传、入账、分配、退回、删除；</li>
+  <li>登录、登录失败、账号锁定；</li>
+  <li>导入、改设置。</li>
+</ul>
+<p>可以按对象筛选，点「查看」能看到当时提交的具体内容。</p>
+
+<h3 id="f-export">导出 Excel</h3>
+<ul>
+  <li><b>欠票总览</b>（首页右上角「导出 Excel」）：按当前板块导出每个供应商的期初、应开、已开、欠票、四段账龄和最早欠票天数，最后一行是合计。</li>
+  <li><b>发票明细</b>（「全部发票」页）：按当前板块和状态筛选后导出。</li>
+  <li><b>税费成本</b>（「税费成本」页）：导出明细和按供应商的汇总。</li>
+</ul>
+
+<h2 id="calc">7. 欠票和账龄怎么算</h2>
+<p>系统采用<b>先开先抵</b>：供应商开来的发票，先冲最早的应开金额，所以还没开票的部分一定是最近的那几笔。每一笔的账龄从这几个日期算起：</p>
+<ul>
+  <li>对账单：财务终审通过那天；</li>
+  <li>期初欠票：系统设置里的启用日。</li>
+</ul>
+<figure>
+  <svg viewBox="0 0 760 190" role="img" aria-label="示例：期初 8000、9 月对账单 25000、10 月对账单 12000，共应开 45000；已开发票 28175.56 从最早的期初开始抵扣，剩下的 16824.44 欠票落在 9 月单的后半段和整个 10 月单上。">
+    <text class="lbl" x="60" y="22">应开（按时间从早到晚）</text>
+    <rect class="seg0" x="60" y="32" width="114" height="36"/><text x="117" y="55" text-anchor="middle">期初 8,000</text>
+    <rect class="seg0" x="174" y="32" width="356" height="36"/><text x="352" y="55" text-anchor="middle">9 月对账单 25,000（10/05 终审）</text>
+    <rect class="seg0" x="530" y="32" width="170" height="36"/><text x="615" y="55" text-anchor="middle">10 月单 12,000（11/02）</text>
+    <text class="lbl" x="60" y="96">已开发票从最早的开始抵扣</text>
+    <rect class="paid" x="60" y="104" width="401" height="30"/><text x="260" y="124" text-anchor="middle">已开 28,175.56</text>
+    <rect class="owe" x="461" y="104" width="239" height="30"/><text x="580" y="124" text-anchor="middle">欠票 16,824.44</text>
+    <line class="e-mut" x1="461" y1="68" x2="461" y2="104"/>
+    <text class="lbl" x="495" y="160" text-anchor="middle">9 月单剩 4,824.44 → 46 天</text>
+    <text class="lbl" x="615" y="178" text-anchor="middle">10 月单 12,000 → 18 天</text>
+    <line class="e-mut" x1="495" y1="134" x2="495" y2="148"/><line class="e-mut" x1="615" y1="134" x2="615" y2="166"/>
+  </svg>
+  <figcaption>假设今天是 11 月 20 日：欠票 16,824.44 中，4,824.44 属于 9 月单（46 天，计入 31–60 天），12,000 属于 10 月单（18 天，计入 0–30 天）。期初欠票已经被抵完，不再计入账龄。</figcaption>
+</figure>
+<div class="card warn"><b>注意：</b>欠票为负数（多开）时，账龄全部为 0。跨板块核销时，财务把发票「改板块」到欠票的那个板块即可。</div>
+
+<h2 id="faq">8. 常见问题</h2>
+<h3>上传 PDF 后有些字段是空的？</h3>
+<p>多半是扫描件或图片转成的 PDF，里面没有文字层。请对照原件手工补全；能拿到 XML 的话，优先上传 XML。</p>
+<h3>提示「发票已经录入过」？</h3>
+<p>发票号码全系统唯一，同一张发票不能入账两次。如果是之前录错了，请财务在「全部发票」里修改或删除那一条。</p>
+<h3>对账单终审后发现金额错了？</h3>
+<p>已生效的单据不能修改，请新建调整单，多计了就填负数冲减，少计了就填正数补差。</p>
+<h3>跟单员看不到某个供应商？</h3>
+<p>跟单员只能看到分配给自己的供应商。请财务或管理员在「基础资料 → 供应商」里，把这家供应商的「跟单员」改成他。</p>
+<h3>供应商的发票开到了另一个板块的公司？</h3>
+<p>如果这家供应商只在一个板块供货，系统会自动改归，并标记「跨板块」。如果它两个板块都供货，财务可以在「全部发票」里点「改板块」。</p>
+<h3>忘记密码或账号被锁？</h3>
+<p>请管理员在「用户与设置」里点你的名字，重置密码或者「强制下线并解锁」。</p>
+<h3>手机上怎么用？</h3>
+<p>用手机浏览器或微信打开系统地址就行，功能和电脑上一样，表格会自动变成卡片显示。上传发票时可以直接选择手机里的 PDF 或 XML 文件。</p>
+
+<p class="back" style="margin-top:48px"><a href="#overview">↑ 回到顶部</a> · <a href="/">回到系统</a></p>
+</main>
+</div>
+</body>
+</html>

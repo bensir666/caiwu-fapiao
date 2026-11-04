@@ -1,4 +1,5 @@
 <script setup>
+import PageGuide from '../components/PageGuide.vue';
 import { ref, computed, watch, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { api, state, money, dt, role, attempt, toast, loadMaster, BOARDS } from '../api.js';
@@ -115,6 +116,7 @@ async function remove(i) {
   if (!confirm(`删除发票 ${i.number}？只在录错时使用，删除会留痕。`)) return;
   if (await attempt(() => api.del(`/api/invoices/${i.id}`), '已删除') !== undefined) loadList();
 }
+const guideTips = ['把数电发票的 <b>XML 或 PDF</b> 拖进来（可以一次多张），系统读出号码、金额、销售方和购买方。', '按购买方税号定板块、按销售方税号找供应商，认得出的直接<b>入账</b>。', '重复、金额对不上、开票主体没登记、一个主体挂了几家都欠票的，进<b>待处理</b>由财务分配。', 'OFD 或照片识别不了，手工填写字段后照样存原件。'];
 </script>
 
 <template>
@@ -122,6 +124,7 @@ async function remove(i) {
     <h2>发票</h2>
     <p class="sub">上传数电发票的 XML 或 PDF，系统读出金额和开票主体，按税号自动归到供应商；认不出的放进待处理由财务分配。</p>
   </div>
+  <PageGuide id="invoices" anchor="f-invoices" :tips="guideTips" />
   <div class="subtabs">
     <button :aria-pressed="tab === 'upload'" @click="tab = 'upload'">上传发票</button>
     <button v-if="role.fin()" :aria-pressed="tab === 'pending'" @click="tab = 'pending'">待处理<span v-if="state.counts.invoices_pending" class="badge">{{ state.counts.invoices_pending }}</span></button>

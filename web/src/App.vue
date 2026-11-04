@@ -46,6 +46,7 @@ async function logout() {
         </div>
         <div class="spacer"></div>
         <span class="user">{{ state.me.name }} · {{ state.me.role }}</span>
+        <a class="btn sm" href="/manual.html" target="_blank" rel="noopener">帮助</a>
         <router-link class="btn sm" to="/password">账号安全</router-link>
         <button class="btn sm" @click="logout">退出</button>
       </div>

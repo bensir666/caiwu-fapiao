@@ -1,4 +1,5 @@
 <script setup>
+import PageGuide from '../components/PageGuide.vue';
 import { ref, computed, watch, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { api, state, money, pct, dt, role, attempt, toast, loadMaster, BOARDS } from '../api.js';
@@ -101,6 +102,7 @@ async function doReject() {
 }
 function doVoid(s) { if (confirm(`确定作废 ${s.code}？作废后不能恢复。`)) act(s, 'void', {}, '已作废'); }
 function doApprove(s) { if (confirm(`终审通过 ${s.code}？\n${s.supplier_name} · ${s.board} · 计入应开 ${money(s.gross)}`)) act(s, 'approve', {}, '终审通过，已计入应开票额'); }
+const guideTips = ['跟单员点「新建对账单」，选供应商和板块，填金额（可选含税或不含税）。也可以导入供应商填好的 Excel 模板。', '保存后是<b>草稿</b>，自己复核无误再点「提交终审」。', '财务在「待终审」里逐张核对，<b>终审通过</b>后才计入应开票额；驳回的单回到跟单员手里修改再提交。', '已生效的单不能改。要冲减就新建一张<b>调整单</b>，金额填负数。'];
 </script>
 
 <template>
@@ -108,6 +110,7 @@ function doApprove(s) { if (confirm(`终审通过 ${s.code}？\n${s.supplier_nam
     <h2>对账单</h2>
     <p class="sub">跟单员创建并自行复核提交，财务一级终审。终审通过后才计入应开票额；已生效的单据要冲减请开调整单。</p>
   </div>
+  <PageGuide id="statements" anchor="f-statements" :tips="guideTips" />
   <section class="panel">
     <div class="panel-h">
       <div class="subtabs">

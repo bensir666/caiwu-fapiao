@@ -53,6 +53,8 @@ test('full flow: master data → statement → invoice → overview', async (t) 
   t.after(async () => { await app.close(); fs.rmSync(dataDir, { recursive: true, force: true }); });
 
   assert.equal((await call(null, 'GET', '/api/overview')).status, 401);
+  let setup0 = await ok('admin', 'GET', '/api/setup-status');
+  assert.deepEqual([setup0.company, setup0.users, setup0.buyers, setup0.suppliers, setup0.statements, setup0.invoices], [false, 0, 0, 0, 0, 0]);
 
   // users
   const fin = await ok('admin', 'POST', '/api/users', { username: 'cw', name: '财务小李', role: '财务', password: 'fin-pass-1' });
@@ -156,6 +158,12 @@ test('full flow: master data → statement → invoice → overview', async (t) 
   // audit trail
   const log = await ok('fin', 'GET', '/api/audit?target=statement');
   assert.ok(log.some((a) => a.action === '终审通过'));
+
+  // first-run checklist reflects what has been set up; 跟单员 cannot read it
+  setup0 = await ok('fin', 'GET', '/api/setup-status');
+  assert.equal(setup0.users, 3);
+  assert.ok(setup0.buyers > 0 && setup0.suppliers > 0 && setup0.entities > 0 && setup0.statements > 0 && setup0.invoices > 0);
+  assert.equal((await call('gd', 'GET', '/api/setup-status')).status, 403);
 });
 
 test('statement template import fills the form', async (t) => {

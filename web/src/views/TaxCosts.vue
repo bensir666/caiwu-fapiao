@@ -1,4 +1,5 @@
 <script setup>
+import PageGuide from '../components/PageGuide.vue';
 import { ref, computed, watch, onMounted } from 'vue';
 import { api, state, money, dt, attempt, loadMaster, todayStr, BOARDS } from '../api.js';
 
@@ -26,6 +27,7 @@ function fromReminder(r) {
 async function skip(r) { if (await attempt(() => api.post(`/api/tax-costs/skip/${r.id}`), '已标记为无需税费') !== undefined) load(); }
 async function save() { if (await attempt(() => api.post('/api/tax-costs', f.value), '已登记') !== undefined) { reset(); load(); } }
 async function remove(t) { if (confirm(`删除这笔 ${money(t.amount)} 的税费成本？`) && await attempt(() => api.del(`/api/tax-costs/${t.id}`), '已删除') !== undefined) load(); }
+const guideTips = ['只有标了「另付税费」的供应商才需要登记。新发票入账后，这里会出现提醒。', '每次金额不固定，按实际支付填写，可以填上对应的发票号码。', '税费成本单独统计，<b>不影响欠票</b>；可以导出 Excel 给会计入账。'];
 </script>
 
 <template>
@@ -33,6 +35,7 @@ async function remove(t) { if (confirm(`删除这笔 ${money(t.amount)} 的税�
     <h2>税费成本</h2>
     <p class="sub">部分供应商开票时需要我方另付税费，这里单独记支出，不影响欠票。</p>
   </div>
+  <PageGuide id="taxcosts" anchor="f-taxcost" :tips="guideTips" />
   <div class="grid2">
     <section class="panel">
       <div class="panel-h"><h3>登记一笔</h3></div>
