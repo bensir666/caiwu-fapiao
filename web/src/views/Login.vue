@@ -28,9 +28,10 @@ async function submit() {
         <form @submit.prevent="submit">
           <label>用户名<input v-model="username" autocomplete="username" autocapitalize="off" required></label>
           <label>密码<input v-model="password" type="password" autocomplete="current-password" required></label>
+          <p v-if="route.query.expired && !err" class="notice" style="margin:0">登录已过期（长时间没有操作会自动退出），请重新登录。</p>
           <p v-if="err" class="err" role="alert">{{ err }}</p>
           <button class="btn pri" :disabled="busy">{{ busy ? '登录中…' : '登录' }}</button>
-          <p class="note">忘记密码请找管理员重置。</p>
+          <p class="note">忘记密码请找管理员重置。连续输错 10 次账号会锁定 15 分钟。</p>
         </form>
       </div>
     </div>

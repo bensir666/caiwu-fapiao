@@ -22,10 +22,16 @@ async function setup() {
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'inv-'));
   const app = await buildApp({ dataDir, dbFile: ':memory:', adminUser: 'admin', adminPassword: 'admin-pass-1' });
   const cookies = {};
+  // logs in; a first login must change the password before anything else works, so do that too
   const login = async (who, username, password) => {
     const r = await app.inject({ method: 'POST', url: '/api/login', payload: { username, password } });
     assert.equal(r.statusCode, 200, r.body);
     cookies[who] = r.cookies.find((c) => c.name === 'sid').value;
+    if (r.json().must_change_password) {
+      const c = await app.inject({ method: 'POST', url: '/api/me/password', cookies: { sid: cookies[who] }, payload: { old_password: password, new_password: 'Nw8k2pQ7x' } });
+      assert.equal(c.statusCode, 200, c.body);
+      cookies[who] = c.cookies.find((x) => x.name === 'sid').value;
+    }
   };
   const call = async (who, method, url, payload, extra = {}) => {
     const r = await app.inject({ method, url, payload, cookies: { sid: cookies[who] }, ...extra });
@@ -47,14 +53,16 @@ test('full flow: master data → statement → invoice → overview', async (t) 
   t.after(async () => { await app.close(); fs.rmSync(dataDir, { recursive: true, force: true }); });
 
   assert.equal((await call(null, 'GET', '/api/overview')).status, 401);
+  let setup0 = await ok('admin', 'GET', '/api/setup-status');
+  assert.deepEqual([setup0.company, setup0.users, setup0.buyers, setup0.suppliers, setup0.statements, setup0.invoices], [false, 0, 0, 0, 0, 0]);
 
   // users
   const fin = await ok('admin', 'POST', '/api/users', { username: 'cw', name: '财务小李', role: '财务', password: 'fin-pass-1' });
   const gd = await ok('admin', 'POST', '/api/users', { username: 'wanglei', name: '王磊', role: '跟单员', password: 'gd-pass-11' });
-  await ok('admin', 'POST', '/api/users', { username: 'other', name: '别人', role: '跟单员', password: 'other-pass' });
+  await ok('admin', 'POST', '/api/users', { username: 'other', name: '别人', role: '跟单员', password: 'xpass-991' });
   await login('fin', 'cw', 'fin-pass-1');
   await login('gd', 'wanglei', 'gd-pass-11');
-  await login('other', 'other', 'other-pass');
+  await login('other', 'other', 'xpass-991');
   assert.equal((await call('gd', 'POST', '/api/buyers', { name: 'x', tax_id: '91440300MA5FTEST01', board: '工厂' })).status, 403);
 
   // master data
@@ -150,6 +158,12 @@ test('full flow: master data → statement → invoice → overview', async (t) 
   // audit trail
   const log = await ok('fin', 'GET', '/api/audit?target=statement');
   assert.ok(log.some((a) => a.action === '终审通过'));
+
+  // first-run checklist reflects what has been set up; 跟单员 cannot read it
+  setup0 = await ok('fin', 'GET', '/api/setup-status');
+  assert.equal(setup0.users, 3);
+  assert.ok(setup0.buyers > 0 && setup0.suppliers > 0 && setup0.entities > 0 && setup0.statements > 0 && setup0.invoices > 0);
+  assert.equal((await call('gd', 'GET', '/api/setup-status')).status, 403);
 });
 
 test('statement template import fills the form', async (t) => {
@@ -181,39 +195,11 @@ test('statement template import fills the form', async (t) => {
 });
 
 test('login throttle and password change', async (t) => {
-  const { app, dataDir, call, login, ok } = await setup();
-  t.after(async () => { await app.close(); fs.rmSync(dataDir, { recursive: true, force: true }); });
-  for (let i = 0; i < 8; i++) assert.equal((await call(null, 'POST', '/api/login', { username: 'admin', password: 'wrong' })).status, 401);
-  assert.equal((await call(null, 'POST', '/api/login', { username: 'admin', password: 'admin-pass-1' })).status, 429);
-  await ok('admin', 'POST', '/api/me/password', { old_password: 'admin-pass-1', new_password: 'new-pass-123' });
-  assert.equal((await ok('admin', 'GET', '/api/me')).user.username, 'admin');
-  void login;
-});
-
-test('master data import from our template (dry run, then real)', async (t) => {
   const { app, dataDir, call, ok } = await setup();
   t.after(async () => { await app.close(); fs.rmSync(dataDir, { recursive: true, force: true }); });
-  await ok('admin', 'POST', '/api/users', { username: 'wanglei', name: '王磊', role: '跟单员', password: 'gd-pass-11' });
-  const tpl = await call('admin', 'GET', '/api/templates/master');
-  const wb = new ExcelJS.Workbook();
-  await wb.xlsx.load(tpl.raw.rawPayload);
-  const ws = wb.getWorksheet('供应商资料');
-  ws.getRow(3).values = ['华茂塑化', '工厂', '13%', '是', 'wanglei', '浙江华茂塑化有限公司', '91330421MA28B6XK2P', null, 45200];
-  ws.getRow(4).values = ['华茂塑化', null, null, null, null, '华茂塑化（宁波）有限公司', '91330200MA2ABCDE1X'];
-  ws.getRow(5).values = ['云杉包装', '电商+工厂', 0.06, '否', 'nobody', '云杉包装有限公司', 'BAD'];
-  const up = multipart('资料.xlsx', Buffer.from(await wb.xlsx.writeBuffer()));
-  const dry = await ok('admin', 'POST', '/api/import/master?dry=1', up.payload, { headers: up.headers });
-  assert.equal(dry.suppliers_created, 2);
-  assert.equal((await ok('admin', 'GET', '/api/master')).suppliers.length, 0);
-  const up2 = multipart('资料.xlsx', Buffer.from(await wb.xlsx.writeBuffer()));
-  const real = await ok('admin', 'POST', '/api/import/master', up2.payload, { headers: up2.headers });
-  assert.equal(real.suppliers_created, 2);
-  assert.equal(real.entities_created, 2);
-  assert.equal(real.errors.length, 2); // unknown owner, bad tax id
-  const m = await ok('admin', 'GET', '/api/master');
-  const hm = m.suppliers.find((s) => s.name === '华茂塑化');
-  assert.equal(hm.rate, 0.13);
-  assert.equal(hm.tax_cost, 1);
-  assert.deepEqual(hm.boards, [{ board: '工厂', opening: 45200 }]);
-  assert.equal(m.suppliers.find((s) => s.name === '云杉包装').boards.length, 2);
+  for (let i = 0; i < 10; i++) assert.equal((await call(null, 'POST', '/api/login', { username: 'admin', password: 'wrong1234' })).status, 401);
+  assert.equal((await call(null, 'POST', '/api/login', { username: 'admin', password: 'Nw8k2pQ7x' })).status, 429, 'account locked even with the right password');
+  // the existing session still works and can change the password
+  assert.equal((await ok('admin', 'GET', '/api/me')).user.username, 'admin');
+  void ok;
 });

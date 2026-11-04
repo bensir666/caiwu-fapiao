@@ -135,8 +135,13 @@ export default async function invoiceRoutes(app) {
     const full = path.join(app.uploadDir, i.file_path);
     if (!full.startsWith(app.uploadDir) || !fs.existsSync(full)) throw notFound('原件文件不见了');
     const types = { '.pdf': 'application/pdf', '.xml': 'application/xml', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp', '.ofd': 'application/octet-stream' };
-    reply.header('Content-Type', types[path.extname(full)] || 'application/octet-stream');
-    reply.header('Content-Disposition', `inline; filename*=UTF-8''${encodeURIComponent(i.file_name || path.basename(full))}`);
+    const ext = path.extname(full);
+    // PDFs and images open in the browser; anything else (XML can carry scripts) is only downloaded, and every
+    // original runs sandboxed so an uploaded file can never act as our site
+    const inline = ['.pdf', '.jpg', '.jpeg', '.png', '.webp'].includes(ext);
+    reply.header('Content-Type', inline ? types[ext] : 'application/octet-stream');
+    reply.header('Content-Disposition', `${inline ? 'inline' : 'attachment'}; filename*=UTF-8''${encodeURIComponent(i.file_name || path.basename(full))}`);
+    reply.header('Content-Security-Policy', ext === '.pdf' ? "default-src 'none'; frame-ancestors 'none'" : "sandbox; default-src 'none'; img-src 'self'; frame-ancestors 'none'");
     return reply.send(fs.createReadStream(full));
   });
 

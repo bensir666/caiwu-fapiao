@@ -11,7 +11,7 @@ const routes = [
   { path: '/master', name: 'master', component: () => import('./views/Master.vue'), meta: { title: '基础资料', fin: true } },
   { path: '/users', name: 'users', component: () => import('./views/Users.vue'), meta: { title: '用户与设置', admin: true } },
   { path: '/audit', name: 'audit', component: () => import('./views/Audit.vue'), meta: { title: '操作记录', fin: true } },
-  { path: '/password', name: 'password', component: () => import('./views/Password.vue') },
+  { path: '/password', name: 'password', component: () => import('./views/Password.vue'), meta: { title: '账号安全' } },
   { path: '/:p(.*)*', redirect: '/' },
 ];
 

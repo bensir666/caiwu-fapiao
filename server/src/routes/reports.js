@@ -51,6 +51,24 @@ export default async function reportRoutes(app) {
     return { ...o, counts };
   });
 
+  /** What the first-run checklist on the home page still needs (finance and admin only). */
+  app.get('/api/setup-status', FIN, async () => {
+    const n = (sql) => db.prepare(sql).get().n;
+    const company = getSetting(db, 'company_name');
+    return {
+      company: !!company && company !== '供应商发票跟踪',
+      opening_date: !!getSetting(db, 'opening_date'),
+      users: n('SELECT COUNT(*) AS n FROM users WHERE active = 1') - 1,
+      buyers: n('SELECT COUNT(*) AS n FROM buyers WHERE active = 1'),
+      buyer_boards: db.prepare('SELECT DISTINCT board FROM buyers WHERE active = 1').all().map((r) => r.board),
+      suppliers: n('SELECT COUNT(*) AS n FROM suppliers WHERE active = 1'),
+      entities: n('SELECT COUNT(*) AS n FROM entities'),
+      opening: n('SELECT COUNT(*) AS n FROM supplier_boards WHERE opening != 0'),
+      statements: n("SELECT COUNT(*) AS n FROM statements WHERE status = '已生效'"),
+      invoices: n("SELECT COUNT(*) AS n FROM invoices WHERE status = '已入账'"),
+    };
+  });
+
   /** Everything about one supplier: ledger per board, statements, invoices, tax costs, entities. */
   app.get('/api/suppliers/:id/detail', R, async (req) => {
     const s = db.prepare(`SELECT s.*, u.name AS owner_name FROM suppliers s LEFT JOIN users u ON u.id = s.owner_id WHERE s.id = ?`).get(req.params.id);

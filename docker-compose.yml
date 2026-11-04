@@ -16,7 +16,12 @@ services:
       ADMIN_USERNAME: admin
       # 第一次启动时的管理员密码；不填会随机生成并打印在日志里（docker compose logs app）
       ADMIN_PASSWORD: ""
-      # 配了 HTTPS 之后改成 1
+      # 配了 HTTPS 之后改成 1（登录凭证只走加密连接，并开启 HSTS）
       COOKIE_SECURE: "0"
+      # 前面有 Nginx/Caddy 时改成 1，登录记录和防暴力破解才能拿到访问者的真实 IP
+      TRUST_PROXY: "0"
+      # 多久不操作自动退出（小时），一次登录最长保持几天
+      IDLE_HOURS: "12"
+      SESSION_DAYS: "7"
     volumes:
       - ./data:/data

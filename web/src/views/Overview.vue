@@ -1,4 +1,6 @@
 <script setup>
+import PageGuide from '../components/PageGuide.vue';
+import SetupGuide from '../components/SetupGuide.vue';
 import { ref, watch, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { api, state, money, role, attempt } from '../api.js';
@@ -16,6 +18,7 @@ const rows = computed(() => (data.value?.rows || []).filter((r) => (!onlyOwe.val
   && (!q.value || r.name.includes(q.value) || r.code.includes(q.value.toUpperCase()))));
 const prog = (r) => (r.should > 0 ? Math.max(0, Math.min(100, Math.round((r.done / r.should) * 100))) : 100);
 const open = (r) => router.push({ name: 'supplier', params: { id: r.id }, query: { board: r.board } });
+const guideTips = ['上面的<b>板块</b>按钮切换电商、工厂或全部，所有页面都跟着变。', '<b>欠票 = 期初欠票 + 已生效对账单 − 已入账发票</b>。点任意一行进供应商明细，能看到每张单和每张票。', '账龄从对账单终审日算起，先开的票先抵最早的单；红色表示最早一笔已超 90 天。', '列表上方的「导出 Excel」导出当前板块的欠票和账龄。'];
 </script>
 
 <template>
@@ -23,6 +26,8 @@ const open = (r) => router.push({ name: 'supplier', params: { id: r.id }, query:
     <h2>欠票总览</h2>
     <p class="sub">截至 {{ data?.asOf }} · {{ state.board || '电商 + 工厂' }}<template v-if="role.gd()"> · 只显示你负责的供应商</template> · 金额均为价税合计</p>
   </div>
+  <PageGuide id="overview" anchor="f-overview" :tips="guideTips" />
+  <SetupGuide v-if="role.fin()" />
   <template v-if="data">
     <div class="kpis">
       <div class="kpi"><div class="lb">应开票额</div><div class="v">{{ money(data.totals.should) }}</div></div>

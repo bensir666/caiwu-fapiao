@@ -1,4 +1,5 @@
 <script setup>
+import PageGuide from '../components/PageGuide.vue';
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { api, state, money, pct, attempt, toast, loadMaster, BOARDS } from '../api.js';
@@ -84,6 +85,7 @@ async function doImport() {
   const r = await attempt(() => api.upload('/api/import/master', pending.value, { board: impBoard.value }));
   if (r) { report.value = r; pending.value = null; toast('导入完成'); load(); }
 }
+const guideTips = ['<b>我方受票主体</b>：电商和工厂所有收票公司的名称和税号，决定发票归哪个板块。', '<b>供应商</b>和<b>开票主体</b>：一个供应商可以有几个开票公司，一个开票公司也可以挂几个供应商。', '第一次用建议走<b>批量导入</b>：下载模板填好上传，系统先预检，确认后才写入。', '<b>期初欠票</b>是系统启用前的历史欠票，按启用日算账龄。'];
 </script>
 
 <template>
@@ -91,6 +93,7 @@ async function doImport() {
     <h2>基础资料</h2>
     <p class="sub">供应商、开票主体（供应商开票用的公司）、受票主体（我方收票的公司）和期初欠票。</p>
   </div>
+  <PageGuide id="master" anchor="f-master" :tips="guideTips" />
   <div class="subtabs">
     <button v-for="[k, l] in [['suppliers', '供应商'], ['entities', '开票主体'], ['buyers', '我方受票主体'], ['opening', '期初欠票'], ['import', '批量导入']]" :key="k" :aria-pressed="tab === k" @click="tab = k">{{ l }}</button>
   </div>

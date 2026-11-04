@@ -155,12 +155,32 @@ CREATE TABLE IF NOT EXISTS audit_log (
 CREATE INDEX IF NOT EXISTS idx_audit_target ON audit_log(target, target_id);
 `;
 
+/** Columns added after the first release; added in place so existing databases upgrade on start. */
+const ADDED_COLUMNS = {
+  users: {
+    last_login_at: 'TEXT', last_login_ip: 'TEXT', failed_count: 'INTEGER NOT NULL DEFAULT 0', locked_until: 'TEXT', password_changed_at: 'TEXT',
+  },
+  sessions: {
+    created_at: "TEXT", last_seen: 'TEXT', ip: 'TEXT', user_agent: 'TEXT',
+  },
+};
+
+function migrate(db) {
+  for (const [table, cols] of Object.entries(ADDED_COLUMNS)) {
+    const have = new Set(db.prepare(`PRAGMA table_info(${table})`).all().map((c) => c.name));
+    for (const [name, type] of Object.entries(cols)) if (!have.has(name)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${name} ${type}`);
+  }
+  // sessions now store a hash of the cookie token; tokens from before cannot be matched, so drop them
+  if (!getSetting(db, 'sessions_hashed')) { db.exec('DELETE FROM sessions'); setSetting(db, 'sessions_hashed', '1'); }
+}
+
 export function openDb(file) {
   if (file !== ':memory:') fs.mkdirSync(path.dirname(file), { recursive: true });
   const db = new Database(file);
   db.pragma('journal_mode = WAL');
   db.pragma('foreign_keys = ON');
   db.exec(SCHEMA);
+  migrate(db);
   return db;
 }
 
